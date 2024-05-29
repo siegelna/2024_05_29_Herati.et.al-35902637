@@ -18,42 +18,62 @@ server <- function(input, output, session)
       selectInput("group", "Select Condition", choices = c("Condition","Source", colnames(meta.df)))
     }
   })
-  
-  scatter.plot <- reactive({
-    scatter.plot <- NULL
-    if(!is.null(input$gene)){
-      gene.idx <- which(rownames(expression.mat) == input$gene)
-      plot.df <- suppressWarnings(meta.df %>% dplyr::left_join(data.frame(Sample=colnames(expression.mat),value=expression.mat[gene.idx,]),by=c("Sample"="Sample")))
-      scatter.plot <- suppressWarnings(plotly::plot_ly(marker=list(size=3),type='scatter',mode="markers",color=plot.df$value,x=plot.df$x,y=plot.df$y,showlegend=F,colors=colorRamp(c("lightgray","darkred"))) %>%
-                                         plotly::layout(title=input$gene,xaxis=list(zeroline=F,showticklabels=F,showgrid=F),yaxis=list(zeroline=F,showticklabels=F,showgrid=F)) %>%
-                                         plotly::colorbar(limits=c(min(plot.df$value,na.rm=T),max(plot.df$value,na.rm=T)),len=0.4,title="Expression (CPM)"))
-    }
-    return(scatter.plot)
+
+  output$y_axis <- renderUI({
+  selectInput("y_axis", "Select Y-Axis Column", choices = c("Condition", "Source", colnames(meta.df)))
   })
+  
+scatter.plot <- reactive({
+  scatter.plot <- NULL
+  if (!is.null(input$gene)) {
+    gene.idx <- which(rownames(expression.mat) == input$gene)
+    plot.df <- suppressWarnings(
+      meta.df %>%
+        left_join(data.frame(Sample = colnames(expression.mat), value = expression.mat[gene.idx, ]), by = c("Sample" = "Sample"))
+    )
+    scatter.plot <- plotly::plot_ly(data = plot.df,
+                            type = 'scatter',
+                            mode = "markers",
+                            color = ~value,
+                            x = ~value,
+                            y = plot.df[[input$y_axis]], 
+                            showlegend = FALSE,
+                            colors = colorRamp(c("lightgray", "darkred")),
+                            marker = list(size = 3))
+  }
+  return(scatter.plot)
+})
   
 distribution.plot <- reactive({
   req(input$gene, input$group)  # Make sure both gene and group are selected
-
+  
   gene.idx <- which(rownames(expression.mat) == input$gene)
   plot.df <- meta.df %>%
     left_join(data.frame(Sample = colnames(expression.mat), value = expression.mat[gene.idx, ]), by = c("Sample" = "Sample"))
-
+  
   if (input$group == "Condition") {
-    distribution.plot <- plot_ly(data = plot.df, x = ~Condition, y = ~value, color = ~Condition, type = "box", boxmean = "sd") %>%
-      layout(title = input$gene, xaxis = list(title = "Condition"), yaxis = list(title = "Expression (CPM)"))
-  } else if (input$group == "Source") {
-    plot.df <- plot.df %>%
-      mutate(Source = as.factor(Source)) %>%
-      arrange(Source)
-    distribution.plot <- ggplot(plot.df, aes(x = Source, y = value, color = Condition)) +
-      geom_boxplot() +
-      labs(x = "Source", y = "Expression (CPM)", title = input$gene) +
-      theme_minimal()
+    distribution.plot <- ggplot(plot.df, aes(x = Condition, y = value, fill = Condition)) +
+      geom_boxplot(color = "black") +  # Add color borders
+      labs(x = "Condition", y = "Expression (CPM)", title = input$gene) +
+      theme_minimal() +
+      theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1))
   } else {
-    distribution.plot <- ggplot(plot.df, aes_string(x = input$group, y = "value", color = "Condition")) +
-      geom_boxplot() +
+    if (input$group == "Source") {
+      plot.df <- plot.df %>%
+        mutate(Source = as.factor(Source)) %>%
+        arrange(Source)
+    } else {
+      plot.df <- plot.df %>%
+        mutate_at(vars(input$group), factor) %>%
+        arrange(.data[[input$group]])
+    }
+    
+    distribution.plot <- ggplot(plot.df, aes(x = .data[[input$group]], y = value, fill = .data[[input$group]])) +
+      geom_boxplot(color = "black") +  # Add color borders
       labs(x = input$group, y = "Expression (CPM)", title = input$gene) +
-      theme_minimal()
+      theme_minimal() +
+      theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1)) +
+      facet_wrap(vars(Condition), scales = "free_x")
   }
 
   return(distribution.plot)
