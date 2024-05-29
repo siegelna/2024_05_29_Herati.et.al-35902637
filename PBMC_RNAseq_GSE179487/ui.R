@@ -1,6 +1,5 @@
 ui <- fluidPage(
   titlePanel("Cancer Anti-PD1 Flu vaccine PBMC RNA-seq "),
-  useShinyjs(),
   sidebarLayout(
     sidebarPanel(
       tags$head(
