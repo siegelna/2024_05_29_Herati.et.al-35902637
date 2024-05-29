@@ -15,7 +15,7 @@ server <- function(input, output, session)
   
   output$group <- renderUI({
     if(input$plotType == "Distribution Plot"){
-      selectInput("group", "Select Condition", choices = c("Condition","Source"))
+      selectInput("group", "Select Condition", choices = c("Condition","Source", colnames(meta.df)))
     }
   })
   
@@ -31,24 +31,33 @@ server <- function(input, output, session)
     return(scatter.plot)
   })
   
-  distribution.plot <- reactive({
-    distribution.plot <- NULL
-    if(!is.null(input$gene) & !is.null(input$group)){
-      gene.idx <- which(rownames(expression.mat) == input$gene)
-      plot.df <- suppressWarnings(meta.df %>% dplyr::left_join(data.frame(Sample=colnames(expression.mat),value=expression.mat[gene.idx,]),by=c("Sample"="Sample")))
-      if(input$group == "Condition"){
-        distribution.plot <- suppressWarnings(plotly::plot_ly(x=plot.df$Condition,y=plot.df$value,split=plot.df$Condition,type='box',box=list(visible=T),points=T,color=plot.df$Condition,showlegend=F) %>%
-                                                plotly::layout(title=input$gene,xaxis=list(title=input$group,zeroline=F),yaxis=list(tickfont = list(size = 15),title="Expression (CPM)",zeroline=F)))
-      } else{
-        plot.df <- plot.df %>% dplyr::mutate(Source=Source) %>% dplyr::arrange(Source)
-        plot.df$Source <- factor(plot.df$Source,levels=unique(plot.df$Source))
-        distribution.plot <- suppressWarnings(ggplot(plot.df,aes(x=Source,y=value)) +
-                                                geom_boxplot(aes(color=Condition)) +
-theme_minimal() + ylab(paste0(input$gene," Expression (CPM)"))+theme(legend.title=element_blank()))
-      }
-    }
-    return(distribution.plot)
-  })
+distribution.plot <- reactive({
+  req(input$gene, input$group)  # Make sure both gene and group are selected
+
+  gene.idx <- which(rownames(expression.mat) == input$gene)
+  plot.df <- meta.df %>%
+    left_join(data.frame(Sample = colnames(expression.mat), value = expression.mat[gene.idx, ]), by = c("Sample" = "Sample"))
+
+  if (input$group == "Condition") {
+    distribution.plot <- plot_ly(data = plot.df, x = ~Condition, y = ~value, color = ~Condition, type = "box", boxmean = "sd") %>%
+      layout(title = input$gene, xaxis = list(title = "Condition"), yaxis = list(title = "Expression (CPM)"))
+  } else if (input$group == "Source") {
+    plot.df <- plot.df %>%
+      mutate(Source = as.factor(Source)) %>%
+      arrange(Source)
+    distribution.plot <- ggplot(plot.df, aes(x = Source, y = value, color = Condition)) +
+      geom_boxplot() +
+      labs(x = "Source", y = "Expression (CPM)", title = input$gene) +
+      theme_minimal()
+  } else {
+    distribution.plot <- ggplot(plot.df, aes_string(x = input$group, y = "value", color = "Condition")) +
+      geom_boxplot() +
+      labs(x = input$group, y = "Expression (CPM)", title = input$gene) +
+      theme_minimal()
+  }
+
+  return(distribution.plot)
+})
   
   output$out.plot_plotly <- plotly::renderPlotly({
     if(input$plotType == "Scatter Plot"){
