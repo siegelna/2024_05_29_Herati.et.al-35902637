@@ -51,8 +51,8 @@ ui <- fluidPage(
       )
     ),
     mainPanel(
-      plotly::plotlyOutput("out.plot_plotly"),
-      plotOutput("out.plot_plot")
+      plotly::plotlyOutput("out.plot_plotly", width = "100%", height = "800px"),  # Adjust width and height as needed
+      plotOutput("out.plot_plot", width = "100%", height = "800px")  # Adjust width and height as needed
     )
   )
 )

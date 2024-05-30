@@ -15,12 +15,12 @@ server <- function(input, output, session)
   
   output$group <- renderUI({
     if(input$plotType == "Distribution Plot"){
-      selectInput("group", "Select Condition", choices = c("Condition","Source", colnames(meta.df)))
+      selectInput("group", "Select Condition", choices = c("Condition", colnames(meta.df)))
     }
   })
 
   output$y_axis <- renderUI({
-  selectInput("y_axis", "Select Y-Axis Column", choices = c("Condition", "Source", colnames(meta.df)))
+  selectInput("y_axis", "Select Y-Axis Column", choices = c("Condition",  colnames(meta.df)))
   })
   
 scatter.plot <- reactive({
@@ -54,25 +54,21 @@ distribution.plot <- reactive({
   if (input$group == "Condition") {
     distribution.plot <- ggplot(plot.df, aes(x = Condition, y = value, fill = Condition)) +
       geom_boxplot(color = "black") +  # Add color borders
-      labs(x = "Condition", y = "Expression (CPM)", title = input$gene) +
+      labs(y = "Expression (CPM)", title = input$gene) +
       theme_minimal() +
       theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1))
+      theme(axis.title.x = element_blank())
   } else {
-    if (input$group == "Source") {
-      plot.df <- plot.df %>%
-        mutate(Source = as.factor(Source)) %>%
-        arrange(Source)
-    } else {
-      plot.df <- plot.df %>%
-        mutate_at(vars(input$group), factor) %>%
-        arrange(.data[[input$group]])
-    }
+    plot.df <- plot.df %>%
+      mutate_at(vars(input$group), factor) %>%
+      arrange(.data[[input$group]])
     
     distribution.plot <- ggplot(plot.df, aes(x = .data[[input$group]], y = value, fill = .data[[input$group]])) +
       geom_boxplot(color = "black") +  # Add color borders
-      labs(x = input$group, y = "Expression (CPM)", title = input$gene) +
+      labs(y = "Expression (CPM)", title = input$gene) +
       theme_minimal() +
       theme(legend.position = "top", axis.text.x = element_text(angle = 45, hjust = 1)) +
+      theme(axis.title.x = element_blank()) +
       facet_wrap(vars(Condition), scales = "free_x")
   }
 
@@ -84,22 +80,22 @@ distribution.plot <- reactive({
       scatter.plot()
     } else {
       req(input$group)
-      if (input$plotType == "Distribution Plot" && input$group != "Source"){
+      if (input$plotType == "Distribution Plot"){
         distribution.plot()
       }
     }
   })
   
-  output$out.plot_plot <- renderPlot({
-    req(input$group)
-    if (input$plotType == "Distribution Plot" && input$group == "Source") {
-      distribution.plot()
-    }
-  })
+  # output$out.plot_plot <- renderPlot({
+  #   req(input$group)
+  #   if (input$plotType == "Distribution Plot") {
+  #     distribution.plot()
+  #   }
+  # })
   
   observeEvent(c(input$group, input$plotType), {
     req(input$group)
-    if (input$group == "Source" && input$plotType == "Distribution Plot") {
+    if (input$plotType == "Distribution Plot") {
       hide("out.plot_plotly")
       show("out.plot_plot")
     } else {
