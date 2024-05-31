@@ -17,7 +17,7 @@ dependencies:
   - r-plotly
 
   # Bioconductor
-  - bioconductor-deseq2
+  - bioconductor-edger
   
   # JupyterLab for running notebooks
   - jupyterlab

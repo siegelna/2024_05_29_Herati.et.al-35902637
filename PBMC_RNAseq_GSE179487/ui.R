@@ -45,14 +45,17 @@ ui <- fluidPage(
       selectInput("plotType", "Plot Type", choices = c("Distribution Plot", "Scatter Plot")),
       uiOutput("gene"),
       uiOutput("group"),
+      uiOutput("facet"),
+      uiOutput("facet2"),
+      uiOutput("fill"), 
       conditionalPanel(
         condition = "input.plotType == 'Scatter Plot'",
         uiOutput("y_axis")
       )
     ),
     mainPanel(
-      plotly::plotlyOutput("out.plot_plotly", width = "100%", height = "800px"),  # Adjust width and height as needed
-      plotOutput("out.plot_plot", width = "100%", height = "800px")  # Adjust width and height as needed
+      plotly::plotlyOutput("out.plot_plotly", width = "90%", height = "900px"),  # Adjust width and height as needed
+      plotOutput("out.plot_plot", width = "90%", height = "900px")  # Adjust width and height as needed
     )
   )
 )
