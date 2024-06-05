@@ -14,7 +14,25 @@ server <- function(input, output, session) {
   })
   
   output$group <- renderUI({
-      selectInput("group", "Select Condition", choices = c("Condition", setdiff(colnames(meta.df), "Sample")))
+    selectInput("group", "Select Grouping Variable", choices = c("Condition", setdiff(colnames(meta.df), "Sample")))
+  })
+  
+  output$additional_group_select <- renderUI({
+    selectizeInput("additional_group", "Subset Grouping Variable", choices = NULL, multiple = TRUE)
+  })
+  
+  observe({
+    if (!is.null(input$group)) {
+      group_values <- unique(meta.df[[input$group]])
+      updateSelectizeInput(session, "additional_group", choices = group_values, server = TRUE)
+    }
+  })
+
+  output$facet <- renderUI({
+    if(input$plotType == "Distribution Plot" && !is.null(input$group)) {
+      choices <- c("None", setdiff(colnames(meta.df), c("Sample", "Condition")))
+      selectInput("facet", "Select Additional Grouping Variable", choices = choices, selected = "Cell_Type")
+    }
   })
   
   output$y_axis <- renderUI({
@@ -27,13 +45,6 @@ server <- function(input, output, session) {
     }
   })
   
-  output$facet <- renderUI({
-    if(input$plotType == "Distribution Plot" && !is.null(input$group)) {
-      choices <- c("None", setdiff(colnames(meta.df), c("Sample", "Condition")))
-      selectInput("facet", "Select Grouping Variable", choices = choices, selected = "Cell_Type")
-    }
-  })
-  
   scatter.plot <- reactive({
     scatter.plot <- NULL
     if (!is.null(input$gene)) {
@@ -42,22 +53,21 @@ server <- function(input, output, session) {
         meta.df %>%
           left_join(data.frame(Sample = colnames(expression.mat), value = expression.mat[gene.idx, ]), by = c("Sample" = "Sample"))
       )
-      scatter.plot <- plotly::plot_ly(data = plot.df,
-                                      type = 'scatter',
-                                      mode = "markers",
-                                      color = ~value,
-                                      x = ~value,
-                                      y = plot.df[[input$y_axis]], 
-                                      showlegend = FALSE,
-                                      colors = colorRamp(c("lightgray", "darkred")),
-                                      marker = list(size = 3))
+      scatter.plot <- plot_ly(data = plot.df,
+                              type = 'scatter',
+                              mode = "markers",
+                              color = ~value,
+                              x = ~value,
+                              y = plot.df[[input$y_axis]], 
+                              showlegend = FALSE,
+                              colors = colorRamp(c("lightgray", "darkred")),
+                              marker = list(size = 3))
     }
     return(scatter.plot)
   })
 
-  
   distribution.plot <- reactive({
-    req(input$gene, input$group, input$facet)  # Make sure gene, group, and facet are selected
+    req(input$gene, input$group, input$facet)
     
     gene.idx <- which(rownames(expression.mat) == input$gene)
     plot.df <- meta.df %>%
@@ -67,6 +77,11 @@ server <- function(input, output, session) {
       mutate_at(vars(input$group), factor) %>%
       arrange(.data[[input$group]])
     
+    # Filter for selected additional grouping variables
+    if (!is.null(input$additional_group)) {
+      plot.df <- plot.df %>% filter(.data[[input$group]] %in% input$additional_group)
+    }
+
     distribution.plot <- ggplot(plot.df, aes(x = .data[[input$group]], y = value, fill = .data[[input$group]])) +
       geom_boxplot(color = "black") +  # Add color borders
       labs(y = "Expression (CPM)", title = input$gene) +
@@ -83,7 +98,7 @@ server <- function(input, output, session) {
     return(distribution.plot)
   })
   
-  output$out.plot_plotly <- plotly::renderPlotly({
+  output$out.plot_plotly <- renderPlotly({
     if(input$plotType == "Scatter Plot"){
       scatter.plot()
     } else {

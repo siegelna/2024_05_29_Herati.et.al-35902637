@@ -1,3 +1,4 @@
+# ui.R
 ui <- fluidPage(
   titlePanel("Cancer Anti-PD1 Flu vaccine PBMC RNA-seq "),
   sidebarLayout(
@@ -36,7 +37,15 @@ ui <- fluidPage(
           ".shiny-output-error:before { 
               visibility: hidden; 
           }"
-        )
+        ),
+        tags$script("
+          $(document).ready(function(){
+            $('select[multiple]').on('click', 'option', function (e) {
+              $(this).prop('selected', !$(this).prop('selected'));
+              e.stopPropagation();
+            });
+          });
+        ")
       ),
       conditionalPanel(
         condition = "$('html').hasClass('shiny-busy')",
@@ -50,6 +59,10 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.plotType == 'Scatter Plot'",
         uiOutput("y_axis")
+      ),
+      conditionalPanel(
+        condition = "input.plotType == 'Distribution Plot' && input.group != 'None'",
+        selectizeInput("additional_group", "Subset Grouping Variable", choices = NULL, multiple = TRUE)
       )
     ),
     mainPanel(
