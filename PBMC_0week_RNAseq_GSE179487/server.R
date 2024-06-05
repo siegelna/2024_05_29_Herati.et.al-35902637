@@ -3,6 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(ggpmisc)
 library(shinyjs)
+library(plotly)
 
 expression.mat <- readRDS("expression.rds")
 meta.df <- readRDS("metadata.rds")
@@ -21,15 +22,15 @@ server <- function(input, output, session) {
     selectizeInput("additional_group", "Subset Grouping Variable", choices = NULL, multiple = TRUE)
   })
   
-  observe({
-    if (!is.null(input$group)) {
-      group_values <- unique(meta.df[[input$group]])
+  observeEvent(input$facet, {
+    if (!is.null(input$facet)) {
+      group_values <- unique(meta.df[[input$facet]])
       updateSelectizeInput(session, "additional_group", choices = group_values, server = TRUE)
     }
   })
 
   output$facet <- renderUI({
-    if(input$plotType == "Distribution Plot" && !is.null(input$group)) {
+    if(input$plotType == "Distribution Plot") {
       choices <- c("None", setdiff(colnames(meta.df), c("Sample", "Condition")))
       selectInput("facet", "Select Additional Grouping Variable", choices = choices, selected = "Cell_Type")
     }
@@ -118,3 +119,4 @@ server <- function(input, output, session) {
     }
   })
 }
+
