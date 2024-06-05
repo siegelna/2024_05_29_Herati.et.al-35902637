@@ -47,6 +47,7 @@ server <- function(input, output, session) {
   })
   
   scatter.plot <- reactive({
+    req(input$gene, input$y_axis)
     scatter.plot <- NULL
     if (!is.null(input$gene)) {
       gene.idx <- which(rownames(expression.mat) == input$gene)
@@ -67,43 +68,40 @@ server <- function(input, output, session) {
     return(scatter.plot)
   })
 
-  distribution.plot <- reactive({
-    req(input$gene, input$group, input$facet)
+distribution.plot <- reactive({
+    req(input$gene, input$facet, input$group)  # Require these inputs
     
     gene.idx <- which(rownames(expression.mat) == input$gene)
     plot.df <- meta.df %>%
       left_join(data.frame(Sample = colnames(expression.mat), value = expression.mat[gene.idx, ]), by = c("Sample" = "Sample"))
     
     plot.df <- plot.df %>%
-      mutate_at(vars(input$group), factor) %>%
-      arrange(.data[[input$group]])
+      mutate_at(vars(input$facet, input$group), factor) %>%
+      arrange(.data[[input$facet]])
     
     # Filter for selected additional grouping variables
     if (!is.null(input$additional_group)) {
-      plot.df <- plot.df %>% filter(.data[[input$group]] %in% input$additional_group)
+      plot.df <- plot.df %>% filter(.data[[input$facet]] %in% input$additional_group)
     }
 
-    distribution.plot <- ggplot(plot.df, aes(x = .data[[input$group]], y = value, fill = .data[[input$group]])) +
+    distribution.plot <- ggplot(plot.df, aes(x = .data[[input$facet]], y = value, fill = .data[[input$group]])) +
       geom_boxplot(color = "black") +  # Add color borders
+      facet_grid(.~Condition, scales = "free_x", labeller = label_both) +  # Separate by Condition
       labs(y = "Expression (CPM)", title = input$gene) +
       theme_minimal() +
       theme(legend.position = "top", axis.text.x = element_text(angle = 35, hjust = 1)) +
       theme(axis.title.x = element_blank()) +
       theme(axis.text.x = element_text(size = 10),  axis.text.y = element_text(size = 10))
     
-    if (input$facet != "None") {
-      distribution.plot <- distribution.plot + 
-        facet_wrap(vars(.data[[input$facet]]), scales = "free_x", labeller = label_both, nrow = 1)
-    }
-    
     return(distribution.plot)
   })
+
   
   output$out.plot_plotly <- renderPlotly({
     if(input$plotType == "Scatter Plot"){
       scatter.plot()
     } else {
-      req(input$group)
+      req(input$gene, input$facet)
       distribution.plot()
     }
   })
