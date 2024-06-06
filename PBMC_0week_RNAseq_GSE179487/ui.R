@@ -1,4 +1,5 @@
 # ui.R
+
 ui <- fluidPage(
   titlePanel("Cancer Anti-PD1 Flu vaccine PBMC RNA-seq "),
   sidebarLayout(
@@ -67,7 +68,9 @@ ui <- fluidPage(
     ),
     mainPanel(
       plotly::plotlyOutput("out.plot_plotly", width = "90%", height = "900px"),  # Adjust width and height as needed
-      plotOutput("out.plot_plot", width = "90%", height = "900px")  # Adjust width and height as needed
+      plotOutput("out.plot_plot", width = "90%", height = "900px"),  # Adjust width and height as needed
+      dataTableOutput("out_plot_table"),  # Display the table
+      downloadButton("download_data", "Download Data")
     )
   )
 )

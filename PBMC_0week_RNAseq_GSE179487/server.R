@@ -4,6 +4,8 @@ library(ggplot2)
 library(ggpmisc)
 library(shinyjs)
 library(plotly)
+library(DT)
+library(dplyr)
 
 expression.mat <- readRDS("expression.rds")
 meta.df <- readRDS("metadata.rds")
@@ -68,7 +70,7 @@ server <- function(input, output, session) {
     return(scatter.plot)
   })
 
-distribution.plot <- reactive({
+  distribution.plot <- reactive({
     req(input$gene, input$facet, input$group)  # Require these inputs
     
     gene.idx <- which(rownames(expression.mat) == input$gene)
@@ -96,7 +98,6 @@ distribution.plot <- reactive({
     return(distribution.plot)
   })
 
-  
   output$out.plot_plotly <- renderPlotly({
     if(input$plotType == "Scatter Plot"){
       scatter.plot()
@@ -106,15 +107,39 @@ distribution.plot <- reactive({
     }
   })
   
+  output$out_plot_table <- renderDT({
+    req(input$plotType)
+    if(input$plotType == "Distribution Plot"){
+      req(input$gene, input$facet)
+      distribution.plot()$data %>%
+        arrange(Cell_Type, Condition) %>%
+        mutate(value = round(value, 3))
+    } else {
+      NULL
+    }
+  }, options = list(scrollX = TRUE, scrollY = TRUE, paging = FALSE))
+  
+  output$download_data <- downloadHandler(
+    filename = function() {
+      paste("data", ".csv", sep = "")
+    },
+    content = function(file) {
+      if(input$plotType == "Distribution Plot") {
+        write.csv(distribution.plot$data, file, row.names = FALSE)
+      } else {
+        write.csv(scatter.plot$data, file, row.names = FALSE)
+      }
+    }
+  )
+  
   observeEvent(c(input$group, input$plotType), {
     req(input$group)
     if (input$plotType == "Distribution Plot") {
       hide("out.plot_plotly")
-      show("out.plot_plot")
+      show("out_plot_table")
     } else {
-      hide("out.plot_plot")
+      hide("out_plot_table")
       show("out.plot_plotly")
     }
   })
 }
-
