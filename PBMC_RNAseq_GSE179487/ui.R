@@ -1,3 +1,5 @@
+# ui.R
+
 ui <- fluidPage(
   titlePanel("Cancer Anti-PD1 Flu vaccine PBMC RNA-seq "),
   sidebarLayout(
@@ -36,7 +38,15 @@ ui <- fluidPage(
           ".shiny-output-error:before { 
               visibility: hidden; 
           }"
-        )
+        ),
+        tags$script("
+          $(document).ready(function(){
+            $('select[multiple]').on('click', 'option', function (e) {
+              $(this).prop('selected', !$(this).prop('selected'));
+              e.stopPropagation();
+            });
+          });
+        ")
       ),
       conditionalPanel(
         condition = "$('html').hasClass('shiny-busy')",
@@ -45,17 +55,24 @@ ui <- fluidPage(
       selectInput("plotType", "Plot Type", choices = c("Distribution Plot", "Scatter Plot")),
       uiOutput("gene"),
       uiOutput("group"),
+      uiOutput("group2"),  # New UI element for Grouping Variable 2
       uiOutput("facet"),
-      uiOutput("facet2"),
-      uiOutput("fill"), 
+      uiOutput("fill"),
       conditionalPanel(
         condition = "input.plotType == 'Scatter Plot'",
         uiOutput("y_axis")
+      ),
+      conditionalPanel(
+        condition = "input.plotType == 'Distribution Plot' && input.group != 'None'",
+        selectizeInput("additional_group", "Subset Grouping Variable", choices = NULL, multiple = TRUE)
       )
     ),
     mainPanel(
-      plotly::plotlyOutput("out.plot_plotly", width = "90%", height = "900px"),  # Adjust width and height as needed
-      plotOutput("out.plot_plot", width = "90%", height = "900px")  # Adjust width and height as needed
+      fluidRow(
+        column(width = 9, plotly::plotlyOutput("out.plot_plotly", height = "900px")),
+        column(width = 6, dataTableOutput("out_plot_table"))  # Display the table
+      ),
+      downloadButton("download_data", "Download Data")
     )
   )
 )
