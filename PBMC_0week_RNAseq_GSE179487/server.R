@@ -15,7 +15,7 @@ server <- function(input, output, session) {
   })
   
   output$group <- renderUI({
-    selectInput("group", "Select Grouping Variable", choices = c("Condition", setdiff(colnames(meta.df), "Sample")))
+    selectInput("group", "Select Grouping Variable", choices = "Condition")
   })
   
   output$additional_group_select <- renderUI({
@@ -31,7 +31,7 @@ server <- function(input, output, session) {
 
   output$facet <- renderUI({
     if(input$plotType == "Distribution Plot") {
-      choices <- c("None", setdiff(colnames(meta.df), c("Sample", "Condition")))
+      choices <- c(setdiff(colnames(meta.df), c("Sample", "Condition")))
       selectInput("facet", "Select Additional Grouping Variable", choices = choices, selected = "Cell_Type")
     }
   })
