@@ -1,3 +1,16 @@
+# Function to check if a package is installed, and install it if not
+install_if_missing <- function(package_name) {
+  if (!requireNamespace(package_name, quietly = TRUE)) {
+    install.packages(package_name, dependencies = TRUE)
+  }
+}
+
+# List of packages to check and install if missing
+packages_to_check <- c("shiny", "dplyr", "ggplot2", "ggpmisc", "shinyjs", "plotly", "DT", "openxlsx")
+
+# Apply the install_if_missing function to each package in the list
+invisible(sapply(packages_to_check, install_if_missing))
+
 library(shiny)  
 library(dplyr)
 library(ggplot2)
