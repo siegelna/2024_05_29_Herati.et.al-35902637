@@ -6,6 +6,7 @@ library(shinyjs)
 library(plotly)
 library(DT)
 library(dplyr)
+library(openxlsx)
 
 expression.mat <- readRDS("expression.rds")
 meta.df <- readRDS("metadata.rds")
@@ -119,18 +120,18 @@ server <- function(input, output, session) {
     }
   }, options = list(scrollX = TRUE, scrollY = TRUE, paging = FALSE))
   
-  output$download_data <- downloadHandler(
-    filename = function() {
-      paste("data", ".csv", sep = "")
-    },
-    content = function(file) {
-      if(input$plotType == "Distribution Plot") {
-        write.csv(distribution.plot$data, file, row.names = FALSE)
-      } else {
-        write.csv(scatter.plot$data, file, row.names = FALSE)
-      }
+output$download_data <- downloadHandler(
+  filename = function() {
+    paste("data", ".xlsx", sep = "")
+  },
+  content = function(file) {
+    if(input$plotType == "Distribution Plot") {
+      write.xlsx(distribution.plot()$data, file, rowNames = FALSE)
+    } else {
+      write.xlsx(scatter.plot()$data, file, rowNames = FALSE)
     }
-  )
+  }
+)
   
   observeEvent(c(input$group, input$plotType), {
     req(input$group)
